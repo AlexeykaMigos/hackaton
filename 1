@@ -1,0 +1,48 @@
+import pandas as pd
+import json
+
+
+input_file = 'dataset.xlsx'  
+
+df = pd.read_excel(input_file)
+
+column_mapping = {
+    'id сте': 'id_сте',
+    'название': 'название_сте',
+    'ссылка на модель': 'ссылка_на_картинку_сте',
+    'страна пр': 'страна_происхождения',
+    'производид': 'производитель',
+    'id категории': 'id_категории',
+    'название.1': 'название_категории',  # предполагаем, что это название категории
+    'характеристики': 'характеристики'
+}
+
+
+df.rename(columns=column_mapping, inplace=True)
+
+
+required_columns = [
+    'id_сте',
+    'название_сте',
+    'ссылка_на_картинку_сте',
+    'модель',           
+    'страна_происхождения',
+    'производитель',
+    'id_категории',
+    'название_категории',
+    'характеристики'
+]
+
+
+if 'модель' not in df.columns:
+    df['модель'] = df['ссылка_на_картинку_сте'].str.split('/').str[-1].str.split('-').str[0]
+
+df = df.where(pd.notnull(df), None)
+
+records = df[required_columns].to_dict(orient='records')
+
+output_file = 'output.json'
+with open(output_file, 'w', encoding='utf-8') as f:
+    json.dump(records, f, ensure_ascii=False, indent=4)
+
+print(f"✅ Данные успешно сохранены в {output_file}")
