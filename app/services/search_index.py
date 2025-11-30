@@ -1,4 +1,3 @@
-# app/services/search_index.py
 from typing import Dict, List, Set
 import re
 
@@ -41,17 +40,14 @@ class SearchIndex:
             fields.append(it.get("название_категории", ""))
             fields.append(it.get("характеристики", ""))
 
-            # include parsed_chars (ключи и значения)
             for k, v in it["_parsed_chars"].items():
                 fields.append(k)
                 fields.append(v)
 
-            # Join text and tokenize
             tokens = []
             for f in fields:
                 tokens.extend(tokenize(str(f)))
 
-            # Update index
             for tok in tokens:
                 if tok not in self.index:
                     self.index[tok] = set()
@@ -67,21 +63,16 @@ class SearchIndex:
         if not q_tokens:
             return []
 
-        # Если один токен → просто вернуть множество
         if len(q_tokens) == 1:
             tok = q_tokens[0]
             ids = self.index.get(tok, set())
         else:
-            # Логика AND: пересечение результатов для всех токенов
             sets = []
             for tok in q_tokens:
                 sets.append(self.index.get(tok, set()))
             ids = set.intersection(*sets) if sets else set()
 
-        # Выбрать объекты по id
         id_map = {it["id_сте"]: it for it in self.data}
         return [id_map[i] for i in ids]
 
-
-# Singleton index
 search_index = SearchIndex()
