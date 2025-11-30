@@ -100,3 +100,122 @@ def search_page(request: Request, q: str = ""):
     else:
         results = []
     return HTMLResponse(content=render_results_html(q, results))
+
+from fastapi import Form
+from fastapi.responses import RedirectResponse
+
+def save_data():
+    """Сохранение данных в output.json"""
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(raw_data, f, ensure_ascii=False, indent=4)
+
+
+
+@app.get("/edit/{item_id}", response_class=HTMLResponse)
+def edit_page(item_id: int):
+    item = next((x for x in raw_data if x["id_сте"] == item_id), None)
+    if not item:
+        return HTMLResponse("<h3>СТЕ не найден</h3>")
+
+    return f"""
+    <h2>Редактирование СТЕ #{item_id}</h2>
+    <form method="post">
+        Название: <input name="название_сте" value="{item['название_сте']}"><br><br>
+        Модель: <input name="модель" value="{item['модель']}"><br><br>
+        Производитель: <input name="производитель" value="{item['производитель']}"><br><br>
+        Категория: <input name="название_категории" value="{item['название_категории']}"><br><br>
+
+        Характеристики:<br>
+        <textarea name="характеристики" rows="6" cols="60">{item['характеристики']}</textarea><br><br>
+
+        Ссылка на картинку:<br>
+        <input name="ссылка_на_картинку_сте" value="{item['ссылка_на_картинку_сте']}"><br><br>
+
+        <button type="submit">Сохранить</button>
+    </form>
+    """
+
+
+@app.post("/edit/{item_id}")
+def save_edit(
+        item_id: int,
+        название_сте: str = Form(...),
+        модель: str = Form(...),
+        производитель: str = Form(...),
+        название_категории: str = Form(...),
+        характеристики: str = Form(...),
+        ссылка_на_картинку_сте: str = Form(...)
+):
+    item = next((x for x in raw_data if x["id_сте"] == item_id), None)
+    if not item:
+        return HTMLResponse("<h3>СТЕ не найден</h3>")
+
+    item.update({
+        "название_сте": название_сте,
+        "модель": модель,
+        "производитель": производитель,
+        "название_категории": название_категории,
+        "характеристики": характеристики,
+        "ссылка_на_картинку_сте": ссылка_на_картинку_сте,
+        "_parsed_chars": parse_characteristics(характеристики)
+    })
+
+    save_data()
+    return RedirectResponse(url=f"/edit/{item_id}", status_code=302)
+                  
+
+@app.get("/delete/{item_id}")
+def delete_item(item_id: int):
+    global raw_data
+    raw_data = [x for x in raw_data if x["id_сте"] != item_id]
+    save_data()
+    return RedirectResponse(url="/search?q=", status_code=302)
+
+
+@app.get("/add", response_class=HTMLResponse)
+def add_page():
+    return """
+    <h2>Добавление новой СТЕ</h2>
+    <form method="post">
+        Название: <input name="название_сте"><br><br>
+        Модель: <input name="модель"><br><br>
+        Производитель: <input name="производитель"><br><br>
+        Категория: <input name="название_категории"><br><br>
+
+        Характеристики:<br>
+        <textarea name="характеристики" rows="6" cols="60"></textarea><br><br>
+
+        Ссылка на картинку:<br>
+        <input name="ссылка_на_картинку_сте"><br><br>
+
+        <button type="submit">Добавить</button>
+    </form>
+    """
+
+
+@app.post("/add")
+def add_item(
+        название_сте: str = Form(...),
+        модель: str = Form(...),
+        производитель: str = Form(...),
+        название_категории: str = Form(...),
+        характеристики: str = Form(...),
+        ссылка_на_картинку_сте: str = Form(...)
+):
+    new_id = max([x["id_сте"] for x in raw_data]) + 1 if raw_data else 1
+
+    new_item = {
+        "id_сте": new_id,
+        "название_сте": название_сте,
+        "модель": модель,
+        "производитель": производитель,
+        "название_категории": название_категории,
+        "характеристики": характеристики,
+        "ссылка_на_картинку_сте": ссылка_на_картинку_сте,
+        "_parsed_chars": parse_characteristics(характеристики)
+    }
+
+    raw_data.append(new_item)
+    save_data()
+
+    return RedirectResponse(url=f"/edit/{new_id}", status_code=302)
