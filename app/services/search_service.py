@@ -1,35 +1,8 @@
-from app.utils.parser import parse_characteristics
-from app.utils.file_ops import load_data
-
-data = load_data()
-
-# Предобработка
-for item in data:
-    item["_parsed_chars"] = parse_characteristics(item.get("характеристики", ""))
+from typing import List, Dict, Any
+from app.services.search_index import search_index
 
 
-def search_stes(query: str):
+def search_stes(query: str) -> List[Dict[str, Any]]:
     if not query.strip():
         return []
-
-    query = query.lower()
-    results = []
-
-    for item in data:
-        # По основным полям
-        for field in ["название_сте", "модель", "производитель", "название_категории"]:
-            if query in str(item.get(field, "")).lower():
-                results.append(item)
-                break
-        else:
-            # По характеристикам
-            for key, val in item["_parsed_chars"].items():
-                if query in key.lower() or query in val.lower():
-                    results.append(item)
-                    break
-
-    return results
-
-
-def get_all_data():
-    return data
+    return search_index.search(query)
